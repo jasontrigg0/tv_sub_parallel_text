@@ -2,6 +2,7 @@ import subprocess
 import os
 import re
 import argparse
+import csv
 
 #given the imdb code of a tv episode
 #get an english <> spanish aligned text of the subtitles
@@ -38,24 +39,19 @@ ALIGN_XML_END="""</linkGrp>
 
 def read_cl():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--imdb_id', required=True)
+    parser.add_argument('--episode_csv')
+    parser.add_argument('--imdb_id')
     args = parser.parse_args()
     return args
 
-if __name__ == "__main__":
+def align_imdb_id(imdb_id):
     SUBTITLES_DIR = "/ssd/files/aligned_subtitles/open_subtitles"
-
-    args = read_cl()
-
-    #IMDB_ID = 583459 #example: friends episode 1
-    #IMDB_ID = 583647 #friends episode 2
-    IMDB_ID = args.imdb_id
 
     #run grep command to get filenames and the lines to copy from en-es.xml
     #example output:
     #13657935:<linkGrp targType="s" fromDoc="en/1994/583459/6763337.xml.gz" toDoc="es/1994/583459/3515260.xml.gz">
     #13658435:</linkGrp>
-    output = subprocess.check_output("less "+SUBTITLES_DIR+"/link_list.txt | grep -A1 '/"+str(IMDB_ID)+"/'", shell=True).decode("UTF-8")
+    output = subprocess.check_output("less "+SUBTITLES_DIR+"/link_list.txt | grep -A1 '/"+str(imdb_id)+"/'", shell=True).decode("UTF-8")
     line1 = output.split("\n")[0].split(":")[0]
     line2 = output.split("\n")[1].split(":")[0]
     en_file = re.findall('fromDoc\="(.*?)"',output)[0] #format from en-es.xml: "en/1994/583459/6763337.xml.gz"
@@ -71,4 +67,19 @@ if __name__ == "__main__":
 
     os.system("unzip -p "+SUBTITLES_DIR+"/en.zip "+en_file+" > /tmp/en.xml")
     os.system("unzip -p "+SUBTITLES_DIR+"/es.zip "+es_file+" > /tmp/es.xml")
-    os.system(SUBTITLES_DIR+"/uplug-readalign /tmp/align.xml")
+    os.system(SUBTITLES_DIR+f"/uplug-readalign /tmp/align.xml > /tmp/alignment_{imdb_id}")
+
+if __name__ == "__main__":
+    args = read_cl()
+    #IMDB_ID = 583459 #example: friends episode 1
+    #IMDB_ID = 583647 #friends episode 2
+
+    if args.episode_csv:
+        with open(args.episode_csv) as f_in:
+            reader = csv.DictReader(f_in)
+            for row in reader:
+                align_imdb_id(row["id"])
+    elif args.imdb_id:
+        align_imdb_id(args.imdb_id)
+    else:
+        raise
