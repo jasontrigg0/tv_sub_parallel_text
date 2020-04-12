@@ -67,7 +67,7 @@ def align_imdb_id(imdb_id):
 
     os.system("unzip -p "+SUBTITLES_DIR+"/en.zip "+en_file+" > /tmp/en.xml")
     os.system("unzip -p "+SUBTITLES_DIR+"/es.zip "+es_file+" > /tmp/es.xml")
-    os.system(SUBTITLES_DIR+f"/uplug-readalign /tmp/align.xml > /tmp/alignment_{imdb_id}")
+    os.system(SUBTITLES_DIR+f"/uplug-readalign /tmp/align.xml > /tmp/alignment_{imdb_id}.txt")
 
 if __name__ == "__main__":
     args = read_cl()
@@ -78,8 +78,15 @@ if __name__ == "__main__":
         with open(args.episode_csv) as f_in:
             reader = csv.DictReader(f_in)
             for row in reader:
-                align_imdb_id(row["id"])
+                try:
+                    align_imdb_id(row["id"])
+                except:
+                    print(f"Unable to align {row}. Skipping...")
+                    continue
     elif args.imdb_id:
-        align_imdb_id(args.imdb_id)
+        try:
+            align_imdb_id(args.imdb_id)
+        except:
+            print(f"Unable to align")
     else:
         raise
